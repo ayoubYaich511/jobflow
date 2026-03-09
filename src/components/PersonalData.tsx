@@ -1,40 +1,40 @@
-import React, { useState } from "react";
+import React from "react";
 import {
     View,
     TextInput,
-    TouchableOpacity,
-    Text,
     StyleSheet,
 } from "react-native";
 
 interface PersonalDataProps {
-    onComplete: () => void;
+    accumatedData: any;
+    setAccumatedData: (data: any) => void;
 }
 
-export default function PersonalData({ onComplete }: PersonalDataProps) {
-    const [firstName, setFirstName] = useState("");
-    const [lastName, setLastName] = useState("");
-
+export default function PersonalData({ accumatedData, setAccumatedData }: PersonalDataProps) {
     return (
         <View style={styles.container}>
             <TextInput
                 style={styles.input}
                 placeholder="First Name"
-                value={firstName}
-                onChangeText={setFirstName}
+                value={accumatedData.personal?.firstName || ""}
+                onChangeText={(value) => {
+                    setAccumatedData((prev: any) => ({
+                        ...prev,
+                        personal: { ...prev.personal, firstName: value, lastName: prev.personal?.lastName || "" }
+                    }));
+                }}
             />
             <TextInput
                 style={styles.input}
                 placeholder="Last Name"
-                value={lastName}
-                onChangeText={setLastName}
+                value={accumatedData.personal?.lastName || ""}
+                onChangeText={(value) => {
+                    setAccumatedData((prev: any) => ({
+                        ...prev,
+                        personal: { ...prev.personal, firstName: prev.personal?.firstName || "", lastName: value }
+                    }));
+                }}
             />
-            <TouchableOpacity
-                style={styles.button}
-                onPress={onComplete}
-            >
-                <Text style={styles.buttonText}>Continue</Text>
-            </TouchableOpacity>
         </View>
     );
 }
@@ -49,15 +49,5 @@ const styles = StyleSheet.create({
         padding: 10,
         marginBottom: 10,
         borderRadius: 5,
-    },
-    button: {
-        backgroundColor: "#2196F3",
-        padding: 10,
-        borderRadius: 5,
-        alignItems: "center",
-    },
-    buttonText: {
-        color: "white",
-        fontWeight: "bold",
     },
 });

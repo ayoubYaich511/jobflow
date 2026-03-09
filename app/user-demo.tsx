@@ -17,7 +17,7 @@ import {
   useMarkAsSeen,
 } from "../src/hooks/useUserHooks";
 import { UserOnboardingStepType, UserPersonalDataOnboardingStep, UserWorkExperienceOnboardingStep } from "../src/models";
-import { Certification, WorkExperience, PersonalData, YesNoQuestion } from "../src/components";
+import { Certification, WorkExperience, PersonalData, YesNoQuestion, StepIndicator } from "../src/components";
 
 export default function UserDemoPage() {
   const { data: user, isLoading, error } = useGetUser();
@@ -25,6 +25,14 @@ export default function UserDemoPage() {
     useGetOnboardingSteps();
   const [isOptionalStepsAnswered, setIsOptionalStepsAnswered] = useState<{ [key: string]: undefined | boolean }>({})
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
+  const [accumatedData, setAccumatedData] = useState<{
+    personal?: { firstName: string; lastName: string };
+    workExperiences: Array<{ company: string; startYear: string; endYear: string }>;
+    certifications?: { name: string; year: string };
+  }>({
+    workExperiences: [],
+    certifications: undefined,
+  })
 
 
   const filteredSteps = onboardingSteps?.filter(step => step.shouldBeShown) || []
@@ -71,16 +79,17 @@ export default function UserDemoPage() {
   const renderStepComponent = (step: UserWorkExperienceOnboardingStep) => {
     switch (step.type) {
       case UserOnboardingStepType.CERTIFICATION:
-        return <Certification onComplete={goToNextStep} />
+        return <Certification accumatedData={accumatedData} setAccumatedData={setAccumatedData} />
 
       case UserOnboardingStepType.WORK_EXPERIENCE:
         return <WorkExperience
-          maxToAdd={step.maxToAdd}
-          onComplete={goToNextStep}
+          index={step.stepWorkExperienceIndex}
+          accumatedData={accumatedData}
+          setAccumatedData={setAccumatedData}
         />
 
       default:
-        return <PersonalData onComplete={goToNextStep} />
+        return <PersonalData accumatedData={accumatedData} setAccumatedData={setAccumatedData} />
     }
   }
 
@@ -136,6 +145,7 @@ export default function UserDemoPage() {
       <Text style={styles.subtitle}>
         Test React Query hooks for user data management
       </Text>
+      <StepIndicator currentStep={currentStepIndex} totalSteps={allDataSteps.length} />
       <View style={styles.stepWrapper}>
         {renderAllSteps()}
       </View>

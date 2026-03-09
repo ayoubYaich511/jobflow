@@ -1,41 +1,38 @@
-import React, { useState } from "react";
+import React from "react";
 import {
     View,
     TextInput,
-    TouchableOpacity,
-    Text,
     StyleSheet,
 } from "react-native";
 
 interface CertificationProps {
-    onComplete: () => void;
+    accumatedData: any;
+    setAccumatedData: (data: any) => void;
 }
 
-export default function Certification({ onComplete }: CertificationProps) {
-    const [name, setName] = useState("");
-    const [year, setYear] = useState("");
+export default function Certification({ accumatedData, setAccumatedData }: CertificationProps) {
+    const handleChange = (field: string, value: string) => {
+        setAccumatedData((prev: any) => ({
+            ...prev,
+            certifications: { ...prev.certifications, [field]: value }
+        }));
+    };
 
     return (
         <View style={styles.container}>
             <TextInput
                 style={styles.input}
                 placeholder="Certification Name"
-                value={name}
-                onChangeText={setName}
+                value={accumatedData.certifications?.name || ""}
+                onChangeText={(value) => handleChange("name", value)}
             />
             <TextInput
                 style={styles.input}
                 placeholder="Certification Year"
-                value={year}
-                onChangeText={setYear}
+                value={accumatedData.certifications?.year || ""}
+                onChangeText={(value) => handleChange("year", value)}
                 keyboardType="numeric"
             />
-            <TouchableOpacity
-                style={styles.button}
-                onPress={onComplete}
-            >
-                <Text style={styles.buttonText}>Continue</Text>
-            </TouchableOpacity>
         </View>
     );
 }
@@ -50,15 +47,5 @@ const styles = StyleSheet.create({
         padding: 10,
         marginBottom: 10,
         borderRadius: 5,
-    },
-    button: {
-        backgroundColor: "#2196F3",
-        padding: 10,
-        borderRadius: 5,
-        alignItems: "center",
-    },
-    buttonText: {
-        color: "white",
-        fontWeight: "bold",
     },
 });
