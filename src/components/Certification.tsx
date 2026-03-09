@@ -8,9 +8,15 @@ import {
 interface CertificationProps {
     accumatedData: any;
     setAccumatedData: (data: any) => void;
+    showErrors?: boolean;
 }
 
-export default function Certification({ accumatedData, setAccumatedData }: CertificationProps) {
+export default function Certification({ accumatedData, setAccumatedData, showErrors = false }: CertificationProps) {
+    const certName = accumatedData.certifications?.name || "";
+    const certYear = accumatedData.certifications?.year || "";
+
+    const isNameEmpty = showErrors && !certName.trim();
+    const isYearEmpty = showErrors && !certYear.trim();
     const handleChange = (field: string, value: string) => {
         setAccumatedData((prev: any) => ({
             ...prev,
@@ -21,15 +27,21 @@ export default function Certification({ accumatedData, setAccumatedData }: Certi
     return (
         <View style={styles.container}>
             <TextInput
-                style={styles.input}
+                style={[
+                    styles.input,
+                    isNameEmpty && styles.inputError,
+                ]}
                 placeholder="Certification Name"
-                value={accumatedData.certifications?.name || ""}
+                value={certName}
                 onChangeText={(value) => handleChange("name", value)}
             />
             <TextInput
-                style={styles.input}
+                style={[
+                    styles.input,
+                    isYearEmpty && styles.inputError,
+                ]}
                 placeholder="Certification Year"
-                value={accumatedData.certifications?.year || ""}
+                value={certYear}
                 onChangeText={(value) => handleChange("year", value)}
                 keyboardType="numeric"
             />
@@ -47,5 +59,9 @@ const styles = StyleSheet.create({
         padding: 10,
         marginBottom: 10,
         borderRadius: 5,
+    },
+    inputError: {
+        borderColor: "#ff0000",
+        borderWidth: 2,
     },
 });

@@ -1,28 +1,30 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from "react-native";
 import {
   useGetUser,
   useUpdatePersonalData,
   useAddWorkExperience,
-  useUpdateWorkExperience,
   useAddCertification,
-  useUpdateCertification,
   useGetOnboardingSteps,
-  useMarkAsSeen,
 } from "../src/hooks/useUserHooks";
-import { UserOnboardingStepType, UserPersonalDataOnboardingStep, UserWorkExperienceOnboardingStep } from "../src/models";
+import { UserOnboardingStepType, UserWorkExperienceOnboardingStep } from "../src/models";
 import { Certification, WorkExperience, PersonalData, YesNoQuestion, StepIndicator } from "../src/components";
 
 export default function UserDemoPage() {
   const { data: user, isLoading, error } = useGetUser();
   const { data: onboardingSteps, isLoading: isLoadingSteps } =
     useGetOnboardingSteps();
+  const updatePersonalData = useUpdatePersonalData();
+  const addWorkExperience = useAddWorkExperience();
+  const addCertification = useAddCertification();
+
   const [isOptionalStepsAnswered, setIsOptionalStepsAnswered] = useState<{ [key: string]: undefined | boolean }>({})
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
   const [accumatedData, setAccumatedData] = useState<{
@@ -33,6 +35,81 @@ export default function UserDemoPage() {
     workExperiences: [],
     certifications: undefined,
   })
+  const [showValidationErrors, setShowValidationErrors] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isPersonalDataValid = () => {
+    const firstName = accumatedData.personal?.firstName?.trim() || "";
+    const lastName = accumatedData.personal?.lastName?.trim() || "";
+    return firstName.length > 0 && lastName.length > 0;
+  };
+
+  const isWorkExperienceValid = (index: number) => {
+    const workExp = accumatedData.workExperiences[index];
+    if (!workExp) return false;
+    const company = workExp.company?.trim() || "";
+    const startYear = workExp.startYear?.trim() || "";
+    const endYear = workExp.endYear?.trim() || "";
+    return company.length > 0 && startYear.length > 0 && endYear.length > 0;
+  };
+
+  const isCertificationValid = () => {
+    const cert = accumatedData.certifications;
+    if (!cert) return false;
+    const name = cert.name?.trim() || "";
+    const year = cert.year?.trim() || "";
+    return name.length > 0 && year.length > 0;
+  };
+
+  const submitApiCall = async (mutationFn: any, payload: any) => {
+    setIsSubmitting(true);
+    try {
+      await mutationFn(payload);
+      setShowValidationErrors(false);
+      setIsSubmitting(false);
+      goToNextStep();
+    } catch (err) {
+      console.error("Failed to submit data", err);
+      setIsSubmitting(false);
+    }
+  }
+
+  const submitPersonalData = async () => {
+    if (!isPersonalDataValid()) {
+      setShowValidationErrors(true);
+      return;
+    }
+
+    submitApiCall(updatePersonalData.mutateAsync, {
+      firstName: accumatedData.personal!.firstName,
+      lastName: accumatedData.personal!.lastName,
+    });
+  };
+
+  const submitWorkExperience = async (index: number) => {
+    if (!isWorkExperienceValid(index)) {
+      setShowValidationErrors(true);
+      return;
+    }
+
+    submitApiCall(addWorkExperience.mutateAsync, {
+      company: accumatedData.workExperiences[index].company,
+      startYear: accumatedData.workExperiences[index].startYear,
+      endYear: accumatedData.workExperiences[index].endYear,
+    });
+  };
+
+  const submitCertification = async () => {
+    if (!isCertificationValid()) {
+      setShowValidationErrors(true);
+      return;
+    }
+
+    submitApiCall(addCertification.mutateAsync, {
+      name: accumatedData.certifications!.name,
+      year: accumatedData.certifications!.year,
+    });
+  };
 
 
   const filteredSteps = onboardingSteps?.filter(step => step.shouldBeShown) || []
@@ -44,7 +121,7 @@ export default function UserDemoPage() {
     }
     else if (step.type === UserOnboardingStepType.WORK_EXPERIENCE && step.maxToAdd > 0) {
       allDataSteps.push(
-        ...Array.from({ length: step.maxToAdd }, (el, x) => ({
+        ...Array.from({ length: step.maxToAdd }, (_, x) => ({
           ...step,
           stepWorkExperienceIndex: x,
           question: "Do you already have work experience?"
@@ -57,7 +134,26 @@ export default function UserDemoPage() {
     }
   }
 
+  const handleSubmitStep = async () => {
+    const step = allDataSteps[currentStepIndex];
+    switch (step.type) {
+      case UserOnboardingStepType.PERSONAL_DATA:
+        await submitPersonalData();
+        break;
+      case UserOnboardingStepType.WORK_EXPERIENCE:
+        await submitWorkExperience(step.stepWorkExperienceIndex);
+        break;
+      case UserOnboardingStepType.CERTIFICATION:
+        await submitCertification();
+        break;
+      default:
+        goToNextStep();
+    }
+
+  };
+
   const goToNextStep = (skipStep: number = 1) => {
+    setShowValidationErrors(false);
     setCurrentStepIndex((prev) => prev + skipStep)
   }
 
@@ -79,17 +175,18 @@ export default function UserDemoPage() {
   const renderStepComponent = (step: UserWorkExperienceOnboardingStep) => {
     switch (step.type) {
       case UserOnboardingStepType.CERTIFICATION:
-        return <Certification accumatedData={accumatedData} setAccumatedData={setAccumatedData} />
+        return <Certification accumatedData={accumatedData} setAccumatedData={setAccumatedData} showErrors={showValidationErrors} />
 
       case UserOnboardingStepType.WORK_EXPERIENCE:
         return <WorkExperience
           index={step.stepWorkExperienceIndex}
           accumatedData={accumatedData}
           setAccumatedData={setAccumatedData}
+          showErrors={showValidationErrors}
         />
 
       default:
-        return <PersonalData accumatedData={accumatedData} setAccumatedData={setAccumatedData} />
+        return <PersonalData accumatedData={accumatedData} setAccumatedData={setAccumatedData} showErrors={showValidationErrors} />
     }
   }
 
@@ -150,12 +247,15 @@ export default function UserDemoPage() {
         {renderAllSteps()}
       </View>
       <TouchableOpacity
-        style={styles.nextButton}
-        onPress={goToNextStep}
+        style={[styles.nextButton, showValidationErrors && styles.nextButtonDisabled]}
+        onPress={handleSubmitStep}
+        disabled={showValidationErrors || isSubmitting}
       >
-        <Text style={styles.nextBtn}>
-          Next
-        </Text>
+        {isSubmitting ? (
+          <ActivityIndicator color="white" />
+        ) : (
+          <Text style={styles.nextBtn}>Next</Text>
+        )}
       </TouchableOpacity>
     </ScrollView>
   );
@@ -194,5 +294,14 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "#ff4444",
     marginTop: 50,
+  },
+  nextButton: {
+    backgroundColor: "#007AFF",
+    padding: 12,
+    borderRadius: 5,
+    marginTop: 20,
+  },
+  nextButtonDisabled: {
+    backgroundColor: "#cccccc",
   },
 });

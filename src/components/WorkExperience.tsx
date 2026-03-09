@@ -3,15 +3,24 @@ import {
     View,
     TextInput,
     StyleSheet,
+    Text
 } from "react-native";
 
 interface WorkExperienceProps {
     index: number;
     accumatedData: any;
     setAccumatedData: (data: any) => void;
+    showErrors?: boolean;
 }
 
-export default function WorkExperience({ index, accumatedData, setAccumatedData }: WorkExperienceProps) {
+export default function WorkExperience({ index, accumatedData, setAccumatedData, showErrors = false }: WorkExperienceProps) {
+    const company = accumatedData.workExperiences[index]?.company || "";
+    const startYear = accumatedData.workExperiences[index]?.startYear || "";
+    const endYear = accumatedData.workExperiences[index]?.endYear || "";
+
+    const isCompanyEmpty = showErrors && !company.trim();
+    const isStartYearEmpty = showErrors && !startYear.trim();
+    const isEndYearEmpty = showErrors && !endYear.trim();
     const handleChange = (field: string, value: string) => {
         setAccumatedData((prev: any) => {
             const updated = [...prev.workExperiences];
@@ -23,22 +32,31 @@ export default function WorkExperience({ index, accumatedData, setAccumatedData 
     return (
         <View style={styles.container}>
             <TextInput
-                style={styles.input}
+                style={[
+                    styles.input,
+                    isCompanyEmpty && styles.inputError,
+                ]}
                 placeholder="Company Name"
-                value={accumatedData.workExperiences[index]?.company || ""}
+                value={company}
                 onChangeText={(value) => handleChange("company", value)}
             />
             <TextInput
-                style={styles.input}
+                style={[
+                    styles.input,
+                    isStartYearEmpty && styles.inputError,
+                ]}
                 placeholder="Start Year"
-                value={accumatedData.workExperiences[index]?.startYear || ""}
+                value={startYear}
                 onChangeText={(value) => handleChange("startYear", value)}
                 keyboardType="numeric"
             />
             <TextInput
-                style={styles.input}
+                style={[
+                    styles.input,
+                    isEndYearEmpty && styles.inputError,
+                ]}
                 placeholder="End Year"
-                value={accumatedData.workExperiences[index]?.endYear || ""}
+                value={endYear}
                 onChangeText={(value) => handleChange("endYear", value)}
                 keyboardType="numeric"
             />
@@ -47,6 +65,13 @@ export default function WorkExperience({ index, accumatedData, setAccumatedData 
 }
 
 const styles = StyleSheet.create({
+    title: {
+        fontSize: 28,
+        fontWeight: "bold",
+        color: "#333",
+        marginBottom: 8,
+        textAlign: "center",
+    },
     container: {
         marginBottom: 20,
     },
@@ -56,5 +81,9 @@ const styles = StyleSheet.create({
         padding: 10,
         marginBottom: 10,
         borderRadius: 5,
+    },
+    inputError: {
+        borderColor: "#ff0000",
+        borderWidth: 2,
     },
 });
